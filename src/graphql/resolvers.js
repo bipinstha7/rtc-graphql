@@ -1,15 +1,90 @@
 const bcrypt = require("bcryptjs");
-const { UserInputError } = require("apollo-server");
+const { UserInputError, AuthenticationError } = require("apollo-server");
+const jwt = require("jsonwebtoken");
+
 const { User } = require("../models");
+const env = require("../config/env.json");
+const { Op } = require("sequelize");
 
 module.exports = {
   Query: {
-    getUsers: async () => {
+    getUsers: async (_, __, { req }) => {
       try {
-        const users = await User.findAll();
+        const token = req.headers.authorization;
+        if (!token) {
+          throw new AuthenticationError("Unauthenticated");
+        }
+
+        let decodedToken;
+        try {
+          decodedToken = jwt.verify(token, env.jwtSecretKey);
+        } catch (error) {
+          throw new AuthenticationError("Unauthenticated");
+        }
+
+        const users = await User.findAll({
+          where: { username: { [Op.ne]: decodedToken.username } },
+        });
         return users;
       } catch (error) {
         console.log({ getUsersError: error });
+        throw error;
+      }
+    },
+    login: async (_, args, __, info) => {
+      const { username, password } = args;
+
+      if (username.trim() === "" || password === "") {
+        throw new UserInputError("username and password required");
+      }
+
+      try {
+        /**
+         * Dynamic attributes
+         *
+         * This is not the best approach for this kind of api
+         * but it shows the way it can also be done! :)
+         */
+
+        const fields = info.fieldNodes[0].selectionSet.selections;
+        let attributes = fields
+          .map(field => field.name.value)
+          .filter(attr => attr !== "token");
+        attributes = [...attributes, "password"];
+
+        const user = await User.findOne({
+          where: { username },
+          attributes,
+        });
+
+        if (!user) {
+          throw new AuthenticationError("invalid username/password.");
+        }
+
+        const correctPassword = await bcrypt.compare(password, user.password);
+
+        if (!correctPassword) {
+          throw new AuthenticationError("invalid username/password.");
+        }
+
+        const token = jwt.sign({ username }, env.jwtSecretKey, {
+          expiresIn: 60 * 60,
+        });
+
+        /*  {...user, token} doesn't work as user has prototypes or is prototype
+         */
+
+        /**
+         * {...user, token} doesn't work as user has prototypes or is prototype
+         *
+         * but can do as {...user.toJSON(), token}
+         */
+
+        user.token = token;
+        return user;
+      } catch (error) {
+        console.log({ loginError: error });
+        throw error;
       }
     },
   },
@@ -36,7 +111,7 @@ module.exports = {
           errors.confirmPassword = "Confirm password not matched";
         }
 
-        /* Get error from database  */
+        /* Instead get error from database  */
 
         // const isUserExists = await User.findOne({ where: { username } });
 
