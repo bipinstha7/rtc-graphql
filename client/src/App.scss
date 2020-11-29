@@ -5,5 +5,11 @@ the bootstrap takes our variable value
 
 $blue: #1877f2;
 $green: #42b72a;
+$gray-600: rgb(245, 245, 245);
+$paragraph-margin-bottom: 0;
 
 @import "bootstrap/scss/bootstrap";
+
+.user-hover:hover {
+  background-color: rgb(250, 250, 250);
+}
