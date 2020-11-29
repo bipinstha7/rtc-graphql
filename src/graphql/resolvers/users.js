@@ -2,7 +2,7 @@ const bcrypt = require("bcryptjs");
 const { UserInputError, AuthenticationError } = require("apollo-server");
 const jwt = require("jsonwebtoken");
 
-const { User } = require("../../models");
+const { User, Message } = require("../../models");
 const env = require("../../config/env.json");
 const { Op } = require("sequelize");
 
@@ -12,9 +12,42 @@ module.exports = {
       try {
         if (!user) throw new AuthenticationError("Unauthenticated");
 
-        const users = await User.findAll({
+        let users = await User.findAll({
+          attributes: ["username", "image_url", "createdAt"],
           where: { username: { [Op.ne]: user.username } },
         });
+
+        const allUserMessages = await Message.findAll({
+          where: {
+            [Op.or]: [{ from: user.username }, { to: user.username }],
+          },
+          order: [["createdAt", "DESC"]],
+        });
+
+        users = users.map(u => {
+          const latestMessage = allUserMessages.find(
+            m => m.from === u.username || m.to === u.username
+          );
+
+          u.latestMessage = latestMessage;
+          return u;
+        });
+
+        /**
+         * Respective sql query for above calculation
+         * 
+         * SELECT DISTINCT ON(M.FROM, M.TO) 
+            U.USERNAME, 
+            M.FROM,
+            M.TO,
+            M.CONTENT
+            FROM USERS U
+            INNER JOIN MESSAGES M ON U.USERNAME = M.FROM
+            OR U.USERNAME = M.TO
+            WHERE U.USERNAME = 'bipin3'
+            ORDER BY M.FROM, M.TO, M."createdAt" DESC; // order by should have distinct columns
+         */
+
         return users;
       } catch (error) {
         console.log({ getUsersError: error });
@@ -57,9 +90,13 @@ module.exports = {
           throw "invalid username/password.";
         }
 
-        const token = jwt.sign({ username }, env.jwtSecretKey, {
-          expiresIn: 60 * 60,
-        });
+        const token = jwt.sign(
+          { username, createdAt: user.createdAt },
+          env.jwtSecretKey,
+          {
+            expiresIn: 60 * 60,
+          }
+        );
 
         /*  {...user, token} doesn't work as user has prototypes or is prototype
          */

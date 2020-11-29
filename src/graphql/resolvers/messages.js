@@ -15,10 +15,13 @@ module.exports = {
           throw new UserInputError("User not found");
         }
 
+        console.log({ aaaaaaaaaaaaaaaaA: from });
         const messages = await Message.findAll({
           where: {
-            from: { [Op.in]: [user.username, fromUser.username] },
-            to: { [Op.in]: [user.username, fromUser.username] },
+            [Op.or]: [
+              { from, to: user.username },
+              { from: user.username, to: from },
+            ],
           },
           order: [["createdAt", "DESC"]],
         });
