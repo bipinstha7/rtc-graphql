@@ -3,7 +3,11 @@ const resolvers = require("./graphql/resolvers");
 const typeDefs = require("./graphql/typeDefs");
 const { sequelize } = require("./models");
 
-const server = new ApolloServer({ typeDefs, resolvers, context: ctx => ctx });
+const server = new ApolloServer({
+  typeDefs,
+  resolvers,
+  context: ctx => ctx,
+});
 
 server.listen().then(({ url }) => {
   console.log(`🚀  Server ready at ${url}`);

@@ -18,7 +18,7 @@ module.exports = gql`
       username: String!
       email: String!
       password: String!
-      confirmPassword: String!
+      confirm_password: String!
     ): User!
   }
 `;

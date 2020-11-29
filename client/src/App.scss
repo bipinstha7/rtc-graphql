@@ -1,0 +1,9 @@
+/* Bootstrap has !default property on their css
+when we declare a variable before importing bootstrap,
+the bootstrap takes our variable value
+*/
+
+$blue: #1877f2;
+$green: #42b72a;
+
+@import "bootstrap/scss/bootstrap";

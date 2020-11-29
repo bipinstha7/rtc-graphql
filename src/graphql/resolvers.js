@@ -35,7 +35,7 @@ module.exports = {
       const { username, password } = args;
 
       if (username.trim() === "" || password === "") {
-        throw new UserInputError("username and password required");
+        throw "username and password required";
       }
 
       try {
@@ -49,7 +49,7 @@ module.exports = {
         const fields = info.fieldNodes[0].selectionSet.selections;
         let attributes = fields
           .map(field => field.name.value)
-          .filter(attr => attr !== "token");
+          .filter(attr => attr !== "token" && attr !== "__typename"); // apollo client auto adds __typename
         attributes = [...attributes, "password"];
 
         const user = await User.findOne({
@@ -58,13 +58,13 @@ module.exports = {
         });
 
         if (!user) {
-          throw new AuthenticationError("invalid username/password.");
+          throw "invalid username/password.";
         }
 
         const correctPassword = await bcrypt.compare(password, user.password);
 
         if (!correctPassword) {
-          throw new AuthenticationError("invalid username/password.");
+          throw "invalid username/password.";
         }
 
         const token = jwt.sign({ username }, env.jwtSecretKey, {
@@ -84,13 +84,13 @@ module.exports = {
         return user;
       } catch (error) {
         console.log({ loginError: error });
-        throw error;
+        throw new UserInputError("invalid input", { error });
       }
     },
   },
   Mutation: {
     register: async (_, args) => {
-      let { username, email, password, confirmPassword } = args;
+      let { username, email, password, confirm_password } = args;
       let errors = {};
 
       try {
@@ -101,14 +101,14 @@ module.exports = {
           errors.email = "Email is required";
         }
         if (!password.trim()) {
-          errors.paassword = "Password is required";
+          errors.password = "Password is required";
         }
-        if (!confirmPassword.trim()) {
-          errors.confirmPassword = "Confirm password is required";
+        if (!confirm_password.trim()) {
+          errors.confirm_password = "Confirm password is required";
         }
 
-        if (password !== confirmPassword) {
-          errors.confirmPassword = "Confirm password not matched";
+        if (password !== confirm_password) {
+          errors.confirm_password = "Confirm password not matched";
         }
 
         /* Instead get error from database  */
