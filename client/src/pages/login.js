@@ -1,8 +1,9 @@
 import { useState } from "react";
 import { Row, Col, Form, Button } from "react-bootstrap";
 import { useHistory, Link } from "react-router-dom";
-
 import { gql, useLazyQuery } from "@apollo/client";
+
+import { useAuthDispatch } from "context/auth";
 
 const LOGIN_USER = gql`
   query login($username: String!, $password: String!) {
@@ -15,6 +16,7 @@ const LOGIN_USER = gql`
 `;
 
 export default function Login() {
+  const dispatch = useAuthDispatch();
   const history = useHistory();
   const [state, setState] = useState({
     username: "",
@@ -25,7 +27,7 @@ export default function Login() {
 
   const [login, { loading }] = useLazyQuery(LOGIN_USER, {
     onCompleted({ login }) {
-      localStorage.setItem("rtc-token", login.token);
+      dispatch({ type: "LOGIN", payload: login });
       history.push("/");
     },
     onError(err) {

@@ -1,24 +1,31 @@
 import { Container } from "react-bootstrap";
-import { BrowserRouter, Route, Switch } from "react-router-dom";
+import { BrowserRouter, Redirect, Switch } from "react-router-dom";
 
 import "./App.scss";
 import Home from "pages/home";
 import Login from "pages/login";
 import Register from "pages/register";
 import ApolloProvider from "ApolloProvider";
+import { AuthProvider } from "context/auth";
+import ProtectedRoute from "utils/ProtectedRoute";
+import Header from "components/header";
 
 export default function App() {
   return (
     <ApolloProvider>
-      <BrowserRouter>
-        <Container>
-          <Switch>
-            <Route exact path="/" component={Home} />
-            <Route exact path="/register" component={Register} />
-            <Route exact path="/login" component={Login} />
-          </Switch>
-        </Container>
-      </BrowserRouter>
+      <AuthProvider>
+        <BrowserRouter>
+          <Header />
+          <Container>
+            <Switch>
+              <ProtectedRoute exact path="/" component={Home} authenticated />
+              <ProtectedRoute exact path="/register" component={Register} />
+              <ProtectedRoute exact path="/login" component={Login} />
+              <Redirect to="/login" />
+            </Switch>
+          </Container>
+        </BrowserRouter>
+      </AuthProvider>
     </ApolloProvider>
   );
 }
