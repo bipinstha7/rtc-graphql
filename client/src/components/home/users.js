@@ -45,19 +45,23 @@ export default function Users() {
     usersMarkup = users.map(user => (
       <div
         role="button"
-        className={classnames("d-flex p-3 user-hover", {
-          "bg-white": selectedUser === user.username,
-        })}
+        className={classnames(
+          "d-flex justify-content-center justify-content-md-start p-3 user-hover",
+          {
+            "bg-white": selectedUser === user.username,
+          }
+        )}
         key={user.username}
         onClick={() => handleClick(user.username)}
       >
         <Image
-          src={user.image_url}
-          roundedCircle
-          className="mr-2"
-          style={{ width: 50, height: 50, objectFit: "cover" }}
+          src={
+            user.image_url ||
+            "https://www.gravatar.com/avatar/00000000000000000000000000000000?d=mp&f=y"
+          }
+          className="user-image"
         />
-        <div>
+        <div className="d-none d-md-block ml-2">
           <p className="text-success">{user.username}</p>
           <p className="font-weight-light" style={{ opacity: 0.3 }}>
             {user.latestMessage
@@ -70,7 +74,7 @@ export default function Users() {
   }
 
   return (
-    <Col xs={4} className="p-0 bg-secondary">
+    <Col xs={2} md={4} className="p-0 bg-secondary">
       {usersMarkup}
     </Col>
   );

@@ -2,9 +2,12 @@ import { useEffect } from "react";
 import { Col } from "react-bootstrap";
 import { gql, useLazyQuery } from "@apollo/client";
 
+import Message from "./message";
+import InputBox from "./inputbox";
+
 import { useMessageDispatch, useMessageState } from "context/message";
 
-const GET_MESSAGES = gql`
+export const GET_MESSAGES = gql`
   query getUsers($from: String!) {
     getMessages(from: $from) {
       uuid
@@ -18,7 +21,14 @@ const GET_MESSAGES = gql`
 
 export default function Messages() {
   const dispatch = useMessageDispatch();
-  const { selectedUser } = useMessageState();
+  const { selectedUser, users } = useMessageState();
+
+  const userIndex = users?.findIndex(u => u.username === selectedUser);
+  const selectedUserMessage = users && users[userIndex]?.messages;
+
+  console.log({
+    selectedUserMessage: selectedUserMessage && selectedUserMessage.length,
+  });
 
   const [getMessages, { loading, data }] = useLazyQuery(GET_MESSAGES);
 
@@ -37,20 +47,55 @@ export default function Messages() {
     }
   }, [data, dispatch, selectedUser]);
 
-  const messages = data?.getMessages;
-
   let selectedChatMarkup;
+
+  /* If we use cache */
+  // const messages = data?.getMessages;
+
+  // if (!selectedUser) {
+  //   selectedChatMarkup = <p className="info-text">Select one of your friend</p>;
+  // } else if (loading) {
+  //   selectedChatMarkup = <p className="info-text">Loading...</p>;
+  // } else if (!messages?.length && !loading) {
+  //   selectedChatMarkup = <p className="info-text">Say Hi!</p>;
+  // } else if (messages?.length) {
+  //   selectedChatMarkup = messages.map((message, index) => (
+  //     <div className="d-flex" key={message.uuid}>
+  //       <Message message={message} />
+  //       {index === messages.length - 1 ? (
+  //         <div className="invisible">
+  //           <hr className="m-0" />
+  //         </div>
+  //       ) : null}
+  //     </div>
+  //   ));
+  // }
+
   if (!selectedUser) {
-    selectedChatMarkup = <p>Select one of your friend</p>;
+    selectedChatMarkup = <p className="info-text">Select one of your friend</p>;
   } else if (loading) {
-    selectedChatMarkup = <p>Loading...</p>;
-  } else if (!messages?.length && !loading) {
-    selectedChatMarkup = <p>Say Hi!</p>;
-  } else if (messages?.length) {
-    selectedChatMarkup = messages.map(message => (
-      <p key={message.uuid}>{message.content}</p>
+    selectedChatMarkup = <p className="info-text">Loading...</p>;
+  } else if (!selectedUserMessage?.length && !loading) {
+    selectedChatMarkup = <p className="info-text">Say Hi!</p>;
+  } else if (selectedUserMessage?.length) {
+    selectedChatMarkup = selectedUserMessage.map((message, index) => (
+      <div className="d-flex" key={message.uuid}>
+        <Message message={message} />
+        {index === selectedUserMessage.length - 1 ? (
+          <div className="invisible">
+            <hr className="m-0" />
+          </div>
+        ) : null}
+      </div>
     ));
   }
 
-  return <Col xs={8}>{selectedChatMarkup}</Col>;
+  return (
+    <Col xs={10} md={8}>
+      <div className="message-box d-flex flex-column-reverse">
+        {selectedChatMarkup}
+      </div>
+      {selectedUser ? <InputBox /> : null}
+    </Col>
+  );
 }

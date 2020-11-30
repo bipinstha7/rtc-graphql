@@ -9,6 +9,9 @@ let initialState = {
 };
 
 const messageReducer = (state, action) => {
+  let users;
+  let userIndex;
+
   switch (action.type) {
     case "SET_USERS":
       return {
@@ -21,14 +24,39 @@ const messageReducer = (state, action) => {
         selectedUser: action.payload,
       };
     case "SET_USER_MESSAGES":
-      const users = [...state.users];
+      users = [...state.users];
+      userIndex = users.findIndex(u => u.username === state.selectedUser);
 
-      const usersIndex = users.findIndex(
-        u => u.username === state.selectedUser
-      );
+      users[userIndex] = { ...users[userIndex], messages: action.payload };
 
-      users[usersIndex] = { ...users[usersIndex], messages: action.payload };
       return { ...state, users };
+    case "ADD_MESSAGE":
+      const { message, username } = action.payload;
+
+      users = [...state.users];
+      userIndex = users.findIndex(u => u.username === username);
+
+      // let messages = [message];
+      // if (userIndex !== -1) {
+      //   messages = [...messages, ...users[userIndex].messages];
+      // }
+
+      let userWithNewMessage = {
+        ...users[userIndex],
+        // messages: [message, ...users[userIndex].messages],
+        messages: users[userIndex].messages
+          ? [message, ...users[userIndex].messages]
+          : null,
+        latestMessage: message,
+      };
+
+      users[userIndex] = userWithNewMessage;
+
+      return {
+        ...state,
+        users,
+      };
+
     default:
       throw new Error(`Unknown action type: ${action.type}`);
   }
