@@ -1,10 +1,9 @@
 import { Button, Row } from "react-bootstrap";
-import { Link, useHistory } from "react-router-dom";
+import { Link } from "react-router-dom";
 
 import { useAuthDispatch, useAuthState } from "context/auth";
 
 export default function Header() {
-  const history = useHistory();
   const dispatch = useAuthDispatch();
   const { user } = useAuthState();
 
@@ -13,7 +12,14 @@ export default function Header() {
   const handleLogout = () => {
     dispatch({ type: "LOGOUT" });
 
-    history.push("/login");
+    /**
+     * To clear the cache store
+     * We could use apollo client's client.resetStore()
+     * or client.clearStore()
+     * but it is bit confusing.
+     * So reloading the login page is better option
+     */
+    window.location.href = "/login";
   };
   return (
     <Row className="bg-dark justify-content-around">
