@@ -92,10 +92,10 @@ module.exports = {
 
         const token = jwt.sign(
           { username, createdAt: user.createdAt },
-          env.jwtSecretKey,
-          {
-            expiresIn: 60 * 60,
-          }
+          env.jwtSecretKey
+          // {
+          //   expiresIn: 60 * 60,
+          // }
         );
 
         /*  {...user, token} doesn't work as user has prototypes or is prototype

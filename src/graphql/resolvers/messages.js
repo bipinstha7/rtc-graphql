@@ -1,4 +1,8 @@
-const { UserInputError, AuthenticationError } = require("apollo-server");
+const {
+  UserInputError,
+  AuthenticationError,
+  withFilter,
+} = require("apollo-server");
 const { Op } = require("sequelize");
 
 const { User, Message } = require("../../models");
@@ -15,7 +19,6 @@ module.exports = {
           throw new UserInputError("User not found");
         }
 
-        console.log({ aaaaaaaaaaaaaaaaA: from });
         const messages = await Message.findAll({
           where: {
             [Op.or]: [
@@ -35,7 +38,7 @@ module.exports = {
     },
   },
   Mutation: {
-    sendMessage: async (_, { to, content }, { user }) => {
+    sendMessage: async (_, { to, content }, { user, pubsub }) => {
       try {
         if (!user) throw new AuthenticationError("Unauthenticated");
 
@@ -61,11 +64,34 @@ module.exports = {
         };
         const message = await Message.create(payload);
 
+        pubsub.publish("NEW_MESSAGE_ADDED", { newMessage: message });
+
         return message;
       } catch (error) {
         console.log({ sendMessageError: error });
         throw error;
       }
+    },
+  },
+  Subscription: {
+    newMessage: {
+      subscribe: withFilter(
+        (_, __, { user, pubsub }) => {
+          if (!user) throw new AuthenticationError("Unauthenticated");
+
+          return pubsub.asyncIterator(["NEW_MESSAGE_ADDED"]);
+        },
+        ({ newMessage }, _, { user }) => {
+          if (
+            newMessage.from === user.username ||
+            newMessage.to === user.username
+          ) {
+            return true;
+          }
+
+          return false;
+        }
+      ),
     },
   },
 };
