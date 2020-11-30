@@ -21,11 +21,28 @@ const NEW_MESSAGE = gql`
   }
 `;
 
+const NEW_REACTION = gql`
+  subscription newReaction {
+    newReaction {
+      id
+      content
+      message {
+        id
+        from
+        to
+      }
+    }
+  }
+`;
+
 export default function Home() {
   const { user } = useAuthState();
   const { selectedUser } = useMessageState();
   const dispatch = useMessageDispatch();
   const { data, error } = useSubscription(NEW_MESSAGE);
+  const { data: reactionData, error: reactionError } = useSubscription(
+    NEW_REACTION
+  );
 
   useEffect(() => {
     if (error) {
@@ -42,7 +59,7 @@ export default function Home() {
         payload: { username: otherUser, message },
       });
 
-      /* Cache dara */
+      /* Update cache */
       const cacheData = client.readQuery({
         query: GET_MESSAGES,
         variables: {
@@ -63,6 +80,45 @@ export default function Home() {
       }
     }
   }, [data, dispatch, error, selectedUser, user.username]);
+
+  useEffect(() => {
+    if (error) {
+      console.log({ useSubscriptionReactionError: error });
+    }
+
+    if (reactionData) {
+      const reaction = reactionData.newReaction;
+      const otherUser =
+        user.username === reaction.message.to
+          ? reaction.message.from
+          : reaction.message.to;
+
+      dispatch({
+        type: "ADD_REACTION",
+        payload: { username: otherUser, reaction },
+      });
+
+      /* Update cache */
+      const cacheData = client.readQuery({
+        query: GET_MESSAGES,
+        variables: {
+          from: selectedUser,
+        },
+      });
+
+      if (cacheData) {
+        client.writeQuery({
+          query: GET_MESSAGES,
+          variables: {
+            from: selectedUser,
+          },
+          data: {
+            getMessages: [message, ...cacheData.getMessages],
+          },
+        });
+      }
+    }
+  }, [dispatch, error, reactionData, selectedUser, user.username]);
 
   return (
     <Row className="mt-5">

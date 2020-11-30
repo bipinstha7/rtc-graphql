@@ -11,10 +11,15 @@ export const GET_MESSAGES = gql`
   query getUsers($from: String!) {
     getMessages(from: $from) {
       uuid
+      id
       from
       to
       content
       createdAt
+      reactions {
+        id
+        content
+      }
     }
   }
 `;
@@ -91,8 +96,8 @@ export default function Messages() {
   }
 
   return (
-    <Col xs={10} md={8}>
-      <div className="message-box d-flex flex-column-reverse">
+    <Col xs={10} md={8} className="p-0">
+      <div className="message-box d-flex flex-column-reverse p-3">
         {selectedChatMarkup}
       </div>
       {selectedUser ? <InputBox /> : null}

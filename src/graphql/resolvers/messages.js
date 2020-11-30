@@ -1,11 +1,12 @@
 const {
   UserInputError,
   AuthenticationError,
+  ForbiddenError,
   withFilter,
 } = require("apollo-server");
 const { Op } = require("sequelize");
 
-const { User, Message } = require("../../models");
+const { User, Message, Reaction } = require("../../models");
 
 module.exports = {
   Query: {
@@ -27,6 +28,7 @@ module.exports = {
             ],
           },
           order: [["createdAt", "DESC"]],
+          include: [{ model: Reaction, as: "reactions" }],
         });
 
         return messages;
@@ -72,6 +74,61 @@ module.exports = {
         throw error;
       }
     },
+    reactToMessage: async (_, { id, content }, { user, pubsub }) => {
+      if (!user) {
+        throw new AuthenticationError("Unauthenticated");
+      }
+
+      const reactions = ["👍", "😆", "❤️", "😢", "😡"];
+
+      try {
+        if (!reactions.includes(content)) {
+          throw new UserInputError("Invalid Reaction");
+        }
+
+        const username = user.username;
+
+        const hasUser = await User.findOne({ where: { username } });
+
+        if (!hasUser) {
+          throw new AuthenticationError("Unauthenticated");
+        }
+
+        const message = await Message.findOne({ where: { id } });
+
+        if (!message) {
+          throw new UserInputError("Message not found");
+        }
+
+        if (message.from !== user.username && message.to !== user.username) {
+          throw new ForbiddenError("Unauthorized");
+        }
+
+        let reaction = await Reaction.findOne({
+          where: { message_id: message.id, user_id: hasUser.id },
+          attributes: ["id", "content", "createdAt", "message_id", "user_id"],
+        });
+
+        if (reaction) {
+          reaction.content = content;
+          await reaction.save();
+        } else {
+          const payload = {
+            message_id: message.id,
+            user_id: hasUser.id,
+            content,
+          };
+          reaction = await Reaction.create(payload);
+        }
+
+        pubsub.publish("NEW_REACTION_ADDED", { newReaction: reaction });
+
+        return reaction;
+      } catch (error) {
+        console.log({ reactToMessageError: error });
+        throw error;
+      }
+    },
   },
   Subscription: {
     newMessage: {
@@ -86,6 +143,24 @@ module.exports = {
             newMessage.from === user.username ||
             newMessage.to === user.username
           ) {
+            return true;
+          }
+
+          return false;
+        }
+      ),
+    },
+    newReaction: {
+      subscribe: withFilter(
+        (_, __, { user, pubsub }) => {
+          if (!user) throw new AuthenticationError("Unauthenticated");
+
+          return pubsub.asyncIterator(["NEW_REACTION_ADDED"]);
+        },
+        async ({ newReaction }, _, { user }) => {
+          const message = await newReaction.getMessage();
+
+          if (message.from === user.username || message.to === user.username) {
             return true;
           }
 

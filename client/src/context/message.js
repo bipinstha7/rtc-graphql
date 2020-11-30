@@ -11,6 +11,7 @@ let initialState = {
 const messageReducer = (state, action) => {
   let users;
   let userIndex;
+  const { reaction, username, message } = action.payload;
 
   switch (action.type) {
     case "SET_USERS":
@@ -31,8 +32,6 @@ const messageReducer = (state, action) => {
 
       return { ...state, users };
     case "ADD_MESSAGE":
-      const { message, username } = action.payload;
-
       users = [...state.users];
       userIndex = users.findIndex(u => u.username === username);
 
@@ -52,6 +51,43 @@ const messageReducer = (state, action) => {
 
       users[userIndex] = userWithNewMessage;
 
+      return {
+        ...state,
+        users,
+      };
+
+    case "ADD_REACTION":
+      users = [...state.users];
+      userIndex = users.findIndex(u => u.username === username);
+
+      let user = { ...users[userIndex] };
+
+      const messageIndex = user.messages?.findIndex(
+        m => m.id === reaction.message.id
+      );
+
+      if (messageIndex > -1) {
+        let messages = [...user.messages];
+        let messageReactions = [...messages[messageIndex].reactions];
+
+        const reactionIndex = messageReactions.findIndex(
+          r => r.id === reaction.id
+        );
+
+        if (reactionIndex > -1) {
+          messageReactions[reactionIndex] = reaction;
+        } else {
+          messageReactions = [...messageReactions, reaction];
+        }
+
+        messages[messageIndex] = {
+          ...messages[messageIndex],
+          reactions: messageReactions,
+        };
+
+        user = { ...user, messages };
+        users[userIndex] = user;
+      }
       return {
         ...state,
         users,

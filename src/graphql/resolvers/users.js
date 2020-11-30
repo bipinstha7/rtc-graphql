@@ -57,6 +57,7 @@ module.exports = {
     login: async (_, args, __, info) => {
       const { username, password } = args;
 
+      console.log("111");
       if (username.trim() === "" || password === "") {
         throw "username and password required";
       }
@@ -107,6 +108,7 @@ module.exports = {
          * but can do as {...user.toJSON(), token}
          */
 
+        console.log({ user });
         user.token = token;
         return user;
       } catch (error) {
